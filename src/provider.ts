@@ -105,8 +105,19 @@ export class BilibiliOfficialProvider {
       page_size: request.pageSize,
     }
     if (request.order !== undefined) params.order = request.order
-    const data = await this.requestJson('/x/web-interface/search/type', params, signal)
-    return mapSearchData(data, request.page, request.pageSize)
+    try {
+      const data = await this.requestJson('/x/web-interface/search/type', params, signal)
+      return mapSearchData(data, request.page, request.pageSize)
+    } catch (error: unknown) {
+      // B站会定向风控默认综合排序(totalrank),而 pubdate/dm 排序通常放行:
+      // 仅当调用方未显式指定排序时,遇到风控自动降级为 pubdate 重试一次;
+      // 显式指定排序(或降级后仍被风控)则原样抛出。
+      if (request.order === undefined && error instanceof BilibiliError && error.code === 'BILIBILI_RISK_CONTROL') {
+        const fallbackData = await this.requestJson('/x/web-interface/search/type', { ...params, order: 'pubdate' }, signal)
+        return mapSearchData(fallbackData, request.page, request.pageSize)
+      }
+      throw error
+    }
   }
 
   /** Fetch one video full metadata. */
@@ -387,7 +398,9 @@ export function mapVideoData(data: unknown, bvid: string): BilibiliVideoDetail {
     })
   }
   const firstPage = pages[0]
-  const firstCid = firstPage !== undefined ? firstPage.cid : finiteNumber(record.cid, 0)
+  // B站会把 cid 放回 data.cid;个别响应里 pages[0].cid 可能缺失/为 0(如风控裁剪),
+  // 此时必须回退到 data.cid,否则后续 playurl/subtitles/frames 全部带 0 请求失败。
+  const firstCid = firstPage !== undefined && firstPage.cid > 0 ? firstPage.cid : finiteNumber(record.cid, 0)
   return {
     bvid,
     aid: finiteNumber(record.aid, 0),

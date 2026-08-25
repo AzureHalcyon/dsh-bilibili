@@ -5,7 +5,7 @@ description: Use before calling bilibili_search, bilibili_video, bilibili_subtit
 
 # B 站工具套件使用指南（plugin-tool-bilibili）
 
-插件版本：0.2.0。关联插件：plugin-web-bilibili（宿主服务与错误码背景）、plugin-tool-github（GitHub 侧对应工具）。
+插件版本：0.2.1。关联插件：plugin-web-bilibili（宿主服务与错误码背景）、plugin-tool-github（GitHub 侧对应工具）。
 
 ## 功能概述
 
@@ -64,7 +64,7 @@ bilibili_frames：
 
 - bvid 报错：确认是 BV 开头的 12 位字符串，从搜索结果里直接复制 bvid 字段。
 - pageSize 超过 20：降低 pageSize 或翻页。
-- BILIBILI_RISK_CONTROL（风控）：搜索接口偶发，稍等几秒重试一次即可；本插件已自动携带匿名 buvid3，通常不再出现。
+- BILIBILI_RISK_CONTROL（风控）：**未显式指定 order 时插件已自动降级（改 pubdate 重试一次），通常不会看到此错误**；若仍返回（显式指定排序、或降级后仍被封），稍等几秒重试一次，或显式换 order=dm/pubdate 再试。
 - BILIBILI_LOGIN_REQUIRED 或 BILIBILI_SUBTITLES_UNAVAILABLE：该视频字幕需要登录或根本没有字幕轨。不要重试，直接走回退方案。
 - BILIBILI_PLAYURL_UNAVAILABLE：该视频没有可用 mp4 直链（可能需要登录/更高清晰度权限）。
 - bilibili_frames 报"does not declare image input"：当前模型不支持识图，改用 bilibili_subtitles；报"no attachment service"：宿主未挂载附件服务；报"ffmpeg is not available"：extract 模式不可用，改用默认 auto。

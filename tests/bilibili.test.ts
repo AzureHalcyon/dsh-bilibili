@@ -39,6 +39,15 @@ describe('mappers', () => {
     expect(detail).toMatchObject({ bvid: 'BV1GJ411x7h7', cid: 1, title: 't', author: 'up', pages: [{ cid: 1, page: 1, part: 'p1', duration: 60 }] })
   })
 
+  it('maps video detail falling back to data.cid when pages[0].cid is missing', () => {
+    const detail = mapVideoData({
+      title: 't', cid: 41112569704, owner: { name: 'up' },
+      pages: [{ cid: 0, page: 1, part: 'p1', duration: 60 }],
+    }, 'BV1GJ411x7h7')
+    expect(detail.cid).toBe(41112569704)
+    expect(detail.pages).toEqual([{ cid: 0, page: 1, part: 'p1', duration: 60 }])
+  })
+
   it('maps subtitle tracks and parses cues', () => {
     const tracks = subtitleTracks({ subtitle: { subtitles: [
       { lan: 'ai-zh', lan_doc: 'AI Chinese', subtitle_url: 'https://aisubtitle.example/1.json' },
@@ -102,6 +111,32 @@ describe('provider request handling', () => {
     const init = spy.mock.calls[0]?.[1] as RequestInit
     expect(String(url)).toContain('api.bilibili.com')
     expect((init.headers as Record<string, string>).cookie).toBe('SESSDATA=bare-token')
+  })
+
+  it('falls back to pubdate ordering once when an implicit search hits risk control', async () => {
+    const okBody = { code: 0, message: '', data: { numResults: 1, result: [
+      { bvid: 'BV1GJ411x7h7', aid: 1, title: 't', author: 'a', mid: 1, play: 1, pubdate: 1600000000, pic: 'https://i0.hdslb.com/bfs/x.jpg' },
+    ] } }
+    const spy = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse({ code: 0, message: '', data: {} })) // homepage bootstrap
+      .mockResolvedValueOnce(jsonResponse({ code: -412, message: 'request was banned', data: {} }))
+      .mockResolvedValueOnce(jsonResponse(okBody))
+    const result = await new BilibiliOfficialProvider().search({ keyword: 'q', page: 1, pageSize: 10 })
+    expect(result.items).toHaveLength(1)
+    const secondUrl = String(spy.mock.calls[1]?.[0])
+    const thirdUrl = String(spy.mock.calls[2]?.[0])
+    expect(secondUrl).toContain('search/type')
+    expect(thirdUrl).toContain('order=pubdate')
+    expect(spy).toHaveBeenCalledTimes(3)
+  })
+
+  it('does not degrade when the caller explicitly selected an order', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse({ code: 0, message: '', data: {} }))
+      .mockResolvedValueOnce(jsonResponse({ code: -412, message: 'request was banned', data: {} }))
+    await expect(new BilibiliOfficialProvider().search({ keyword: 'q', page: 1, pageSize: 10, order: 'totalrank' }))
+      .rejects.toMatchObject({ code: 'BILIBILI_RISK_CONTROL' })
+    expect(spy).toHaveBeenCalledTimes(2)
   })
 
   it('passes a full cookie header through unchanged', async () => {
