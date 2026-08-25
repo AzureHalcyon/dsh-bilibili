@@ -2,13 +2,15 @@
 
 [中文](README.zh.md) | English
 
-A Bilibili retrieval plugin for DeepSeek Harness. After install the agent gains three tools:
+A Bilibili retrieval plugin for DeepSeek Harness. After install the agent gains five tools:
 
 - bilibili_search — find videos by keyword: title, uploader, play count, duration, publish date.
 - bilibili_video — full metadata for one video: counts, partition, multi-part pages, description.
 - bilibili_subtitles — the subtitle transcript of one video, merged into plain text.
+- bilibili_playurl — the direct mp4 play URL (and granted quality/size) for downloads or frame extraction.
+- bilibili_frames — real video frames (preview sprite grid, cover fallback, or ffmpeg extraction) as image blocks, so image-capable models can watch the actual footage instead of relying on subtitles alone.
 
-Anonymous by default: search works with automatic anonymous-cookie bootstrapping, and metadata always works. Set a SESSDATA cookie to unlock login-gated subtitle tracks, which is where most AI subtitles live. The plugin reads metadata and subtitle text only — it never downloads video or audio streams.
+Anonymous by default: search works with automatic anonymous-cookie bootstrapping, and metadata always works. Set a SESSDATA cookie to unlock login-gated subtitle tracks (where most AI subtitles live), higher-quality play URLs, and the frames preview path. The plugin reads metadata, subtitles, and frame images only — it never stores or re-uploads videos.
 
 ## Install
 
@@ -19,7 +21,7 @@ Run:
     # or directly from Git:
     dsh plugin --profile web add git+https://github.com/moxingovo/dsh-bilibili
 
-Restart dsh web. New conversations gain bilibili_search, bilibili_video, and bilibili_subtitles automatically.
+Restart dsh web. New conversations gain bilibili_search, bilibili_video, bilibili_subtitles, bilibili_playurl, and bilibili_frames automatically (bilibili_frames additionally requires the attachments service, which the standard web bundle mounts).
 
 ## Optional SESSDATA
 

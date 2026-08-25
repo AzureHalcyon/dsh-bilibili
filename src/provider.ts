@@ -7,6 +7,8 @@
  */
 
 import type {
+  BilibiliPlayUrlResult,
+  BilibiliPlayerInfo,
   BilibiliSearchRequest,
   BilibiliSearchResult,
   BilibiliSubtitleCue,
@@ -113,6 +115,56 @@ export class BilibiliOfficialProvider {
     return mapVideoData(data, request.bvid)
   }
 
+  /** Fetch one video's direct mp4 URL (single-segment durl). */
+  async playurl(request: { readonly bvid: string; readonly qn?: number }, signal?: AbortSignal): Promise<BilibiliPlayUrlResult> {
+    const detail = await this.video(request, signal)
+    const data = await this.requestJson('/x/player/playurl', {
+      bvid: request.bvid,
+      cid: detail.cid,
+      qn: request.qn ?? 64,
+      fnval: 0,
+      platform: 'html5',
+      high_quality: 1,
+    }, signal)
+    return mapPlayUrlData(data, request.bvid, detail.cid)
+  }
+
+  /** Fetch player endpoint metadata (preview sprite) for one video page. */
+  async playerInfo(request: { readonly bvid: string; readonly cid: number }, signal?: AbortSignal): Promise<BilibiliPlayerInfo> {
+    const data = await this.playerData(request.bvid, request.cid, signal)
+    const previewPic = previewPicOf(data)
+    return previewPic === undefined ? {} : { previewPic }
+  }
+
+  /** Fetch raw bytes from an image CDN (sprite/cover); no cookie leaves the API host. */
+  async fetchBytes(url: string, signal?: AbortSignal): Promise<Uint8Array> {
+    const absolute = url.startsWith('//') ? 'https:' + url : url
+    const timeoutMs = this.options.requestTimeoutMs ?? BILIBILI_DEFAULT_REQUEST_TIMEOUT_MS
+    const signals: AbortSignal[] = []
+    if (signal !== undefined) signals.push(signal)
+    signals.push(AbortSignal.timeout(timeoutMs))
+    let response: Response
+    try {
+      response = await fetch(absolute, { signal: AbortSignal.any(signals), redirect: 'manual', headers: {
+        'user-agent': this.options.userAgent ?? BILIBILI_DEFAULT_USER_AGENT,
+      } })
+    } catch (cause: unknown) {
+      if (signal?.aborted === true) throw cause
+      throw new BilibiliError('bilibili image fetch failed: ' + String(cause), 'BILIBILI_REQUEST_FAILED', { cause })
+    }
+    if (response.status >= 300 && response.status < 400) {
+      throw new BilibiliError('bilibili refused an image redirect (HTTP ' + String(response.status) + ')', 'BILIBILI_REDIRECT_REFUSED')
+    }
+    return new Uint8Array(await response.arrayBuffer())
+  }
+
+  /** WBI-signed player metadata for one video page (shared by subtitles and frames). */
+  private async playerData(bvid: string, cid: number, signal?: AbortSignal): Promise<unknown> {
+    const pair = await this.resolveWbiKeys(signal)
+    const signed = wbiSign({ bvid, cid }, pair.imgKey, pair.subKey, this.nowSec())
+    return this.requestJson('/x/player/wbi/v2', signed, signal)
+  }
+
   /**
    * Fetch one video subtitle transcript: view for the default cid,
    * WBI-signed player for the track list, then the selected track JSON
@@ -120,9 +172,7 @@ export class BilibiliOfficialProvider {
    */
   async subtitles(request: { readonly bvid: string; readonly language?: string }, signal?: AbortSignal): Promise<BilibiliSubtitlesResult> {
     const detail = await this.video(request, signal)
-    const pair = await this.resolveWbiKeys(signal)
-    const signed = wbiSign({ bvid: request.bvid, cid: detail.cid }, pair.imgKey, pair.subKey, this.nowSec())
-    const data = await this.requestJson('/x/player/wbi/v2', signed, signal)
+    const data = await this.playerData(request.bvid, detail.cid, signal)
     const tracks = subtitleTracks(data)
     const track = selectSubtitleTrack(tracks, request.language ?? this.options.subtitleLanguage ?? BILIBILI_DEFAULT_SUBTITLE_LANGUAGE)
     const cues = await this.fetchSubtitleCues(track.url, signal)
@@ -368,6 +418,30 @@ export function mapVideoData(data: unknown, bvid: string): BilibiliVideoDetail {
  * @returns the available tracks.
  * @throws BilibiliError BILIBILI_SUBTITLES_UNAVAILABLE for a missing or empty list.
  */
+/** Map a playurl payload into the normalized direct-URL result. */
+export function mapPlayUrlData(data: unknown, bvid: string, cid: number): BilibiliPlayUrlResult {
+  const record = asRecord(data)
+  const durl = asRecordArray(record.durl)
+  const first = durl[0]
+  if (first === undefined) {
+    throw new BilibiliError('this video exposes no playable mp4 url (login or higher-quality access may be required)', 'BILIBILI_PLAYURL_UNAVAILABLE')
+  }
+  const url = nonEmptyString(asRecord(first).url)
+  if (url === undefined) throw new BilibiliError('the playurl payload carries no stream address', 'BILIBILI_PLAYURL_UNAVAILABLE')
+  return {
+    bvid,
+    cid,
+    url,
+    quality: finiteNumber(record.quality, 0),
+    size: finiteNumber(asRecord(first).size, 0),
+  }
+}
+
+/** Extract the preview sprite URL from a player payload; undefined when absent. */
+export function previewPicOf(data: unknown): string | undefined {
+  return nonEmptyString(asRecord(data).preview_pic)
+}
+
 export function subtitleTracks(data: unknown): BilibiliSubtitleTrack[] {
   const record = asRecord(data)
   const subtitle = asRecord(record.subtitle)

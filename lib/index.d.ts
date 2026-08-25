@@ -1,9 +1,11 @@
 /**
  * dsh-bilibili: one DeepSeek Harness plugin that registers the Bilibili
- * capability (bilibili_search / bilibili_video / bilibili_subtitles) with
- * its official API provider. Anonymous by default with risk-control
- * bootstrapping; an optional SESSDATA from the environment unlocks
- * login-gated subtitles.
+ * capability (bilibili_search / bilibili_video / bilibili_subtitles /
+ * bilibili_playurl / bilibili_frames) with its official API provider.
+ * Anonymous by default with risk-control bootstrapping; an optional SESSDATA
+ * from the environment unlocks login-gated subtitles and higher-quality
+ * streams. bilibili_frames returns real video frames as images for
+ * image-capable models.
  */
 import type { Context } from '@deepseek-ai/cordis';
 import z from '@deepseek-ai/schemastery';
@@ -11,9 +13,11 @@ export { BilibiliOfficialProvider, BILIBILI_DEFAULT_BASE_URL, BILIBILI_DEFAULT_R
 export type { BilibiliOfficialProviderOptions } from './provider.ts';
 export { BilibiliError } from './types.ts';
 export type { BilibiliProviderLike, BilibiliSearchOrder, BilibiliSearchRequest, BilibiliSearchResult, BilibiliSubtitleCue, BilibiliSubtitleTrack, BilibiliSubtitlesResult, BilibiliVideoDetail, BilibiliVideoPage, BilibiliVideoSummary, } from './types.ts';
-export { BILIBILI_SEARCH_DEFAULT_PAGE_SIZE, BILIBILI_SUBTITLES_MAX_CHARS, BVID_PATTERN, applyBilibiliSearchTool, applyBilibiliVideoTool, applyBilibiliSubtitleTool, boundTranscript, formatSearchOutput, formatSubtitleOutput, formatVideoOutput, parseSearchArgs, parseSubtitleArgs, parseVideoArgs, presentSearchCall, presentSearchResult, presentSubtitleCall, presentSubtitleResult, presentVideoCall, presentVideoResult, subtitleOutput, } from './tools.ts';
-export type { BilibiliSearchArgs, BilibiliSubtitleOutput } from './tools.ts';
+export { BILIBILI_SEARCH_DEFAULT_PAGE_SIZE, BILIBILI_SUBTITLES_MAX_CHARS, BVID_PATTERN, PLAYURL_QUALITIES, applyBilibiliSearchTool, applyBilibiliVideoTool, applyBilibiliSubtitleTool, applyBilibiliPlayUrlTool, boundTranscript, formatPlayUrlOutput, formatSearchOutput, formatSubtitleOutput, formatVideoOutput, parsePlayUrlArgs, parseSearchArgs, parseSubtitleArgs, parseVideoArgs, presentSearchCall, presentSearchResult, presentSubtitleCall, presentSubtitleResult, presentVideoCall, presentVideoResult, subtitleOutput, } from './tools.ts';
+export type { BilibiliPlayUrlArgs, BilibiliSearchArgs, BilibiliSubtitleOutput } from './tools.ts';
 export { MIXIN_KEY_ENC_TAB, mixinKey, wbiSign } from './wbi.ts';
+export { BILIBILI_FRAMES_DEFAULT_COUNT, BILIBILI_FRAMES_MAX_COUNT, FRAME_MODES, applyBilibiliFramesTool, parseFramesArgs, } from './frames.ts';
+export type { BilibiliFrameImage, BilibiliFrameMode, BilibiliFramesArgs, BilibiliFramesValue } from './frames.ts';
 /** Cordis plugin name used by loader diagnostics. */
 export declare const name = "dsh-plugin-bilibili";
 /** Services required before the plugin starts. */

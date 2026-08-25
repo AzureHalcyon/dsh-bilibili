@@ -146,6 +146,24 @@ export interface BilibiliSubtitlesResult {
     /** Cue texts joined by newlines (the model-facing transcript). */
     readonly transcript: string;
 }
+/** One direct-play mp4 URL as the playurl endpoint returns it. */
+export interface BilibiliPlayUrlResult {
+    /** Video BV id. */
+    readonly bvid: string;
+    /** The cid used for the request. */
+    readonly cid: number;
+    /** Direct mp4 URL (single-segment durl). */
+    readonly url: string;
+    /** The quality actually granted (qn). */
+    readonly quality: number;
+    /** Encoded file size in bytes. */
+    readonly size: number;
+}
+/** Player endpoint metadata relevant to frame viewing. */
+export interface BilibiliPlayerInfo {
+    /** Preview sprite URL (a grid of sampled frames); absent when none is exposed. */
+    readonly previewPic?: string;
+}
 /**
  * The provider surface the tools execute against (the plugin own provider
  * implements it; kept narrow so consumers see one contract).
@@ -159,6 +177,15 @@ export interface BilibiliProviderLike {
         readonly bvid: string;
         readonly language?: string;
     }, signal?: AbortSignal): Promise<BilibiliSubtitlesResult>;
+    playurl(request: {
+        readonly bvid: string;
+        readonly qn?: number;
+    }, signal?: AbortSignal): Promise<BilibiliPlayUrlResult>;
+    playerInfo(request: {
+        readonly bvid: string;
+        readonly cid: number;
+    }, signal?: AbortSignal): Promise<BilibiliPlayerInfo>;
+    fetchBytes(url: string, signal?: AbortSignal): Promise<Uint8Array>;
 }
 /**
  * Typed Bilibili error with a machine-routable, open-string code and

@@ -3,9 +3,10 @@ import { Context } from '@deepseek-ai/cordis'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { BilibiliOfficialProvider, mapSearchData, mapVideoData, parseSubtitleCues, selectSubtitleTrack, subtitleTracks } from '../src/provider.ts'
+import { BilibiliOfficialProvider, mapPlayUrlData, mapSearchData, mapVideoData, parseSubtitleCues, previewPicOf, selectSubtitleTrack, subtitleTracks } from '../src/provider.ts'
 import { BilibiliError } from '../src/types.ts'
-import { boundTranscript, formatSearchOutput, formatSubtitleOutput, formatVideoOutput, parseSearchArgs, parseSubtitleArgs, parseVideoArgs, subtitleOutput } from '../src/tools.ts'
+import { boundTranscript, formatPlayUrlOutput, formatSearchOutput, formatSubtitleOutput, formatVideoOutput, parsePlayUrlArgs, parseSearchArgs, parseSubtitleArgs, parseVideoArgs, subtitleOutput } from '../src/tools.ts'
+import { parseFramesArgs } from '../src/frames.ts'
 import * as plugin from '../src/index.ts'
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
@@ -150,15 +151,48 @@ describe('provider request handling', () => {
 })
 
 describe('plugin composition', () => {
-  it('registers the three tools and executes search end to end', async () => {
+  it('registers the four attachments-free tools and executes search end to end', async () => {
     const ctx = new Context()
     await (ctx.plugin(SystemPrompt, {})).await()
     await (ctx.plugin(ToolRuntime, {})).await()
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ code: 0, message: '', data: { numResults: 1, result: [{ bvid: 'BV1GJ411x7h7', title: 't', author: 'up' }] } }))
     await (ctx.plugin(plugin, {})).await()
     const names = ctx.tools.schemas().map(s => s.name)
-    expect(names).toEqual(['bilibili_search', 'bilibili_video', 'bilibili_subtitles'])
+    expect(names).toEqual(['bilibili_search', 'bilibili_video', 'bilibili_subtitles', 'bilibili_playurl'])
     const result = await ctx.tools.execute({ signal: new AbortController().signal, callId: 'c1' as never, name: 'bilibili_search', arguments: { keyword: 'q' } })
     expect(result.isError).toBe(false)
+  })
+})
+
+describe('playurl and frames', () => {
+  it('maps a playurl payload into the normalized result', () => {
+    const result = mapPlayUrlData({ quality: 64, durl: [{ url: 'https://upos.example/v.mp4', size: 1024 }] }, 'BV1GJ411x7h7', 41112569704)
+    expect(result).toEqual({ bvid: 'BV1GJ411x7h7', cid: 41112569704, url: 'https://upos.example/v.mp4', quality: 64, size: 1024 })
+  })
+
+  it('rejects a playurl payload without durl', () => {
+    expect(() => mapPlayUrlData({ quality: 0, durl: [] }, 'BV1GJ411x7h7', 1)).toThrow(BilibiliError)
+  })
+
+  it('extracts the preview sprite URL when present', () => {
+    expect(previewPicOf({ preview_pic: 'https://i0.hdslb.com/bfs/preview/x.jpg' })).toBe('https://i0.hdslb.com/bfs/preview/x.jpg')
+    expect(previewPicOf({})).toBeUndefined()
+  })
+
+  it('validates playurl args and formats output', () => {
+    expect(parsePlayUrlArgs({ bvid: 'BV1GJ411x7h7' })).toEqual({ bvid: 'BV1GJ411x7h7', qn: 64 })
+    expect(parsePlayUrlArgs({ bvid: ' BV1GJ411x7h7 ', qn: 32 })).toEqual({ bvid: 'BV1GJ411x7h7', qn: 32 })
+    expect(() => parsePlayUrlArgs({ bvid: '' })).toThrow('bvid must be a non-empty string')
+    expect(() => parsePlayUrlArgs({ bvid: 'BV1GJ411x7h7', qn: 100 })).toThrow('qn must be one of')
+    expect(formatPlayUrlOutput('https://x/v.mp4', 64, 2 * 1024 * 1024)).toContain('2.0 MB')
+    expect(formatPlayUrlOutput('https://x/v.mp4', 32, 500 * 1024)).toContain('500 KB')
+  })
+
+  it('validates frames args', () => {
+    expect(parseFramesArgs({ bvid: 'BV1GJ411x7h7' })).toEqual({ bvid: 'BV1GJ411x7h7', mode: 'auto', count: 8 })
+    expect(parseFramesArgs({ bvid: 'BV1GJ411x7h7', mode: 'extract', count: 4 })).toEqual({ bvid: 'BV1GJ411x7h7', mode: 'extract', count: 4 })
+    expect(() => parseFramesArgs({ bvid: 'BV1GJ411x7h7', mode: 'bogus' })).toThrow('mode must be one of')
+    expect(() => parseFramesArgs({ bvid: 'BV1GJ411x7h7', count: 0 })).toThrow('count must be an integer between 1 and')
+    expect(() => parseFramesArgs({ bvid: '' })).toThrow('bvid must be a non-empty string')
   })
 })

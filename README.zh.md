@@ -2,13 +2,15 @@
 
 [English](README.md) | 中文
 
-为 DeepSeek Harness 打造的 B 站检索插件。安装后 Agent 获得三个工具：
+为 DeepSeek Harness 打造的 B 站检索插件。安装后 Agent 获得五个工具：
 
 - bilibili_search —— 按关键词找视频：标题、UP 主、播放量、时长、发布日期。
 - bilibili_video —— 单个视频的完整元数据：各项计数、分区、分 P 列表、简介。
 - bilibili_subtitles —— 单个视频的字幕文稿，合并为纯文本。
+- bilibili_playurl —— 单个视频的 mp4 直链（含实际清晰度与大小），用于下载或抽帧。
+- bilibili_frames —— 视频真实画面（预览帧网格、封面回退或 ffmpeg 抽帧）以图片块返回，让支持图片输入的模型直接"看"视频画面，不再只依赖字幕。
 
-默认匿名可用：搜索自带匿名 cookie 引导，元数据始终可用。配置 SESSDATA 后解锁登录可见字幕轨——多数 AI 字幕都在这一层。插件只读元数据与字幕文本，绝不下载视频或音频流。
+默认匿名可用：搜索自带匿名 cookie 引导，元数据始终可用。配置 SESSDATA 后解锁登录可见字幕轨（多数 AI 字幕都在这一层）、更高清晰度直链与预览帧路径。插件只读元数据、字幕与帧画面，绝不存储或再上传视频。
 
 ## 安装
 
@@ -19,7 +21,7 @@
     # 或直接从 Git 安装：
     dsh plugin --profile web add git+https://github.com/moxingovo/dsh-bilibili
 
-重启 dsh web，新会话自动获得 bilibili_search、bilibili_video 与 bilibili_subtitles。
+重启 dsh web，新会话自动获得 bilibili_search、bilibili_video、bilibili_subtitles、bilibili_playurl 与 bilibili_frames（bilibili_frames 另需附件服务，标准 web bundle 已挂载）。
 
 ## 可选 SESSDATA
 

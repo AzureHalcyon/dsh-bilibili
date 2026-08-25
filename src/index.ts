@@ -1,15 +1,18 @@
 /**
  * dsh-bilibili: one DeepSeek Harness plugin that registers the Bilibili
- * capability (bilibili_search / bilibili_video / bilibili_subtitles) with
- * its official API provider. Anonymous by default with risk-control
- * bootstrapping; an optional SESSDATA from the environment unlocks
- * login-gated subtitles.
+ * capability (bilibili_search / bilibili_video / bilibili_subtitles /
+ * bilibili_playurl / bilibili_frames) with its official API provider.
+ * Anonymous by default with risk-control bootstrapping; an optional SESSDATA
+ * from the environment unlocks login-gated subtitles and higher-quality
+ * streams. bilibili_frames returns real video frames as images for
+ * image-capable models.
  */
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { BilibiliOfficialProvider, BILIBILI_DEFAULT_BASE_URL, BILIBILI_DEFAULT_REQUEST_TIMEOUT_MS, BILIBILI_DEFAULT_SUBTITLE_LANGUAGE, BILIBILI_DEFAULT_USER_AGENT } from './provider.ts'
-import { applyBilibiliSearchTool, applyBilibiliVideoTool, applyBilibiliSubtitleTool, BILIBILI_SUBTITLES_MAX_CHARS } from './tools.ts'
+import { applyBilibiliSearchTool, applyBilibiliVideoTool, applyBilibiliSubtitleTool, applyBilibiliPlayUrlTool, BILIBILI_SUBTITLES_MAX_CHARS } from './tools.ts'
+import { applyBilibiliFramesTool } from './frames.ts'
 
 export { BilibiliOfficialProvider, BILIBILI_DEFAULT_BASE_URL, BILIBILI_DEFAULT_REQUEST_TIMEOUT_MS, BILIBILI_DEFAULT_SUBTITLE_LANGUAGE, BILIBILI_DEFAULT_USER_AGENT, BILIBILI_PROVIDER_ID, BILIBILI_SEARCH_MAX_PAGE_SIZE, BILIBILI_WBI_KEY_TTL_MS, BILIBILI_COOKIE_BOOTSTRAP_URL, mapSearchData, mapVideoData, subtitleTracks, selectSubtitleTrack, parseSubtitleCues } from './provider.ts'
 export type { BilibiliOfficialProviderOptions } from './provider.ts'
@@ -30,13 +33,17 @@ export {
   BILIBILI_SEARCH_DEFAULT_PAGE_SIZE,
   BILIBILI_SUBTITLES_MAX_CHARS,
   BVID_PATTERN,
+  PLAYURL_QUALITIES,
   applyBilibiliSearchTool,
   applyBilibiliVideoTool,
   applyBilibiliSubtitleTool,
+  applyBilibiliPlayUrlTool,
   boundTranscript,
+  formatPlayUrlOutput,
   formatSearchOutput,
   formatSubtitleOutput,
   formatVideoOutput,
+  parsePlayUrlArgs,
   parseSearchArgs,
   parseSubtitleArgs,
   parseVideoArgs,
@@ -48,8 +55,16 @@ export {
   presentVideoResult,
   subtitleOutput,
 } from './tools.ts'
-export type { BilibiliSearchArgs, BilibiliSubtitleOutput } from './tools.ts'
+export type { BilibiliPlayUrlArgs, BilibiliSearchArgs, BilibiliSubtitleOutput } from './tools.ts'
 export { MIXIN_KEY_ENC_TAB, mixinKey, wbiSign } from './wbi.ts'
+export {
+  BILIBILI_FRAMES_DEFAULT_COUNT,
+  BILIBILI_FRAMES_MAX_COUNT,
+  FRAME_MODES,
+  applyBilibiliFramesTool,
+  parseFramesArgs,
+} from './frames.ts'
+export type { BilibiliFrameImage, BilibiliFrameMode, BilibiliFramesArgs, BilibiliFramesValue } from './frames.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'dsh-plugin-bilibili'
@@ -106,7 +121,7 @@ function configured(value: string | undefined): string | undefined {
 }
 
 /** The model-facing guidance registered with the system prompt. */
-const GUIDANCE = "Use bilibili_search to find videos on bilibili.com by keyword; follow up with bilibili_video for one result's full metadata and bilibili_subtitles for its subtitle transcript. Cite the video URL as a markdown link when you use its content."
+const GUIDANCE = "Use bilibili_search to find videos on bilibili.com by keyword; follow up with bilibili_video for one result's full metadata, bilibili_subtitles for its subtitle transcript, or bilibili_frames for real video frames as images (image-capable models only). Use bilibili_playurl for a direct mp4 download URL. Cite the video URL as a markdown link when you use its content."
 
 /**
  * Register the Bilibili provider and all three tools. The provider reads
@@ -145,4 +160,10 @@ export function apply(ctx: Context, config: Config): void {
   applyBilibiliSearchTool(ctx, provider, resolved.searchMaxPageSize, resolved.timeoutMs)
   applyBilibiliVideoTool(ctx, provider, resolved.timeoutMs)
   applyBilibiliSubtitleTool(ctx, provider, resolved.subtitleMaxChars, resolved.timeoutMs)
+  applyBilibiliPlayUrlTool(ctx, provider, resolved.timeoutMs)
+  // bilibili_frames needs the attachments service (durable image commits);
+  // it registers only while a store is mounted, mirroring read_image.
+  ctx.inject(['attachments'], (attachmentsCtx) => {
+    applyBilibiliFramesTool(attachmentsCtx, provider, resolved.timeoutMs)
+  })
 }

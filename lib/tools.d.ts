@@ -16,6 +16,24 @@ export interface BilibiliSearchArgs {
     pageSize: number;
     order?: BilibiliSearchOrder;
 }
+/** The quality ladder bilibili_playurl accepts. */
+export declare const PLAYURL_QUALITIES: readonly [16, 32, 48, 64, 80];
+/** Validated bilibili_playurl arguments. */
+export interface BilibiliPlayUrlArgs {
+    bvid: string;
+    qn: number;
+}
+/**
+ * Validate bilibili_playurl arguments: a non-blank bvid and a known qn.
+ * @param args - the schema-validated tool arguments.
+ * @returns the accepted arguments with defaults filled.
+ */
+export declare function parsePlayUrlArgs(args: {
+    bvid?: string;
+    qn?: number;
+}): BilibiliPlayUrlArgs;
+/** Format one playurl outcome as the model-facing text block. */
+export declare function formatPlayUrlOutput(url: string, quality: number, size: number): string;
 /**
  * Validate value constraints the schema DSL cannot express: a non-blank
  * keyword, positive bounded page numbers, and a known sort order.
@@ -168,3 +186,10 @@ export declare function presentSubtitleResult(_args: unknown, _result: ToolResul
  * @param timeoutMs - the cooperative tool-call budget (ms).
  */
 export declare function applyBilibiliSubtitleTool(ctx: Context, service: BilibiliProviderLike, maxChars: number, timeoutMs: number): void;
+/**
+ * Register the bilibili_playurl tool: the direct mp4 URL for one video.
+ * @param ctx - context whose tools registry receives the registration.
+ * @param service - the provider instance the tool executes against.
+ * @param timeoutMs - the cooperative tool-call budget (ms).
+ */
+export declare function applyBilibiliPlayUrlTool(ctx: Context, service: BilibiliProviderLike, timeoutMs: number): void;

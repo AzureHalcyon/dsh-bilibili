@@ -5,7 +5,7 @@
  * login-gated subtitles. Every request refuses redirects, and the cookie is
  * only ever sent to the configured API host - never to subtitle CDN hosts.
  */
-import type { BilibiliSearchRequest, BilibiliSearchResult, BilibiliSubtitleCue, BilibiliSubtitleTrack, BilibiliSubtitlesResult, BilibiliVideoDetail } from './types.ts';
+import type { BilibiliPlayUrlResult, BilibiliPlayerInfo, BilibiliSearchRequest, BilibiliSearchResult, BilibiliSubtitleCue, BilibiliSubtitleTrack, BilibiliSubtitlesResult, BilibiliVideoDetail } from './types.ts';
 /** Provider registry id for the official API implementation. */
 export declare const BILIBILI_PROVIDER_ID = "bilibili-official";
 /** Default API base URL. */
@@ -55,6 +55,20 @@ export declare class BilibiliOfficialProvider {
     video(request: {
         readonly bvid: string;
     }, signal?: AbortSignal): Promise<BilibiliVideoDetail>;
+    /** Fetch one video's direct mp4 URL (single-segment durl). */
+    playurl(request: {
+        readonly bvid: string;
+        readonly qn?: number;
+    }, signal?: AbortSignal): Promise<BilibiliPlayUrlResult>;
+    /** Fetch player endpoint metadata (preview sprite) for one video page. */
+    playerInfo(request: {
+        readonly bvid: string;
+        readonly cid: number;
+    }, signal?: AbortSignal): Promise<BilibiliPlayerInfo>;
+    /** Fetch raw bytes from an image CDN (sprite/cover); no cookie leaves the API host. */
+    fetchBytes(url: string, signal?: AbortSignal): Promise<Uint8Array>;
+    /** WBI-signed player metadata for one video page (shared by subtitles and frames). */
+    private playerData;
     /**
      * Fetch one video subtitle transcript: view for the default cid,
      * WBI-signed player for the track list, then the selected track JSON
@@ -122,6 +136,10 @@ export declare function mapVideoData(data: unknown, bvid: string): BilibiliVideo
  * @returns the available tracks.
  * @throws BilibiliError BILIBILI_SUBTITLES_UNAVAILABLE for a missing or empty list.
  */
+/** Map a playurl payload into the normalized direct-URL result. */
+export declare function mapPlayUrlData(data: unknown, bvid: string, cid: number): BilibiliPlayUrlResult;
+/** Extract the preview sprite URL from a player payload; undefined when absent. */
+export declare function previewPicOf(data: unknown): string | undefined;
 export declare function subtitleTracks(data: unknown): BilibiliSubtitleTrack[];
 /**
  * Select one track: an exact language match wins; otherwise the first.
