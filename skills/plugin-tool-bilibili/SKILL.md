@@ -5,7 +5,7 @@ description: Use before calling bilibili_search, bilibili_video, bilibili_subtit
 
 # B 站工具套件使用指南（plugin-tool-bilibili）
 
-插件版本：0.2.3（已在 DeepSeek Harness 0.1.7-rc.2 与 0.1.6-alpha.2 上验证）。关联技能：plugin-web-bilibili（宿主提供方与错误码背景）、plugin-tool-github（GitHub 侧对应工具）。
+插件版本：0.2.4（已在 DeepSeek Harness 0.1.7-rc.2 与 0.1.6-alpha.2 上验证）。关联技能：plugin-web-bilibili（宿主提供方与错误码背景）、plugin-tool-github（GitHub 侧对应工具）。
 
 ## 功能概述
 
@@ -49,7 +49,7 @@ bilibili_frames：
 - mode：可选，auto（默认）用预览帧雪碧图（缺失时退回封面）、extract 用 ffmpeg 抽帧（要求宿主装了 ffmpeg 且指定 count）。
 - count：可选，extract 模式帧数，1-12，默认 8；实际受部署的单消息图片上限约束。
 返回：images 数组（每个 entry 含 attachmentId、mediaType、bytes、width、height）+ meta（bvid、title、source：preview/cover/extract）。
-注意：模型必须声明支持图片输入，否则工具直接报错（提示改用 bilibili_subtitles）；extract 模式会下载整段视频，仅短视频或确有需要时使用。
+注意：工具在所有挂载了本插件的 preset 里都可见，但**执行时**需要两件事：当前作用域挂载了附件存储（`attachments`），且当前模型声明支持图片输入。两者任一不满足都会直接报错（附件缺失报 `no attachment service is mounted in this scope`，模型不支持报 `does not declare image input`，提示改用 bilibili_subtitles）；extract 模式会下载整段视频，仅短视频或确有需要时使用。
 
 ## 最小调用示例
 

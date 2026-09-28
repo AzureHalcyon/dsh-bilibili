@@ -249,7 +249,9 @@ export function applyBilibiliFramesTool(ctx: Context, service: BilibiliProviderL
             items: {
               type: 'object',
               additionalProperties: false,
-              required: true,
+              // 0.1.7 的值 schema DSL 不允许对象项自带 `required`(报
+              // "schema.properties.images.items.required is not supported"):
+              // 必填性只能由各属性自己的 `required: true` 表达,下面每个属性都写了。
               properties: {
                 attachmentId: { type: 'string', required: true },
                 mediaType: { type: 'string', enum: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'], required: true },

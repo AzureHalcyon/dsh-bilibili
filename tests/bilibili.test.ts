@@ -186,16 +186,32 @@ describe('provider request handling', () => {
 })
 
 describe('plugin composition', () => {
-  it('registers the four attachments-free tools and executes search end to end', async () => {
+  it('registers all five tools on the plugin fiber and executes search end to end', async () => {
     const ctx = new Context()
     await (ctx.plugin(SystemPrompt, {})).await()
     await (ctx.plugin(ToolRuntime, {})).await()
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ code: 0, message: '', data: { numResults: 1, result: [{ bvid: 'BV1GJ411x7h7', title: 't', author: 'up' }] } }))
     await (ctx.plugin(plugin, {})).await()
     const names = ctx.tools.schemas().map(s => s.name)
-    expect(names).toEqual(['bilibili_search', 'bilibili_video', 'bilibili_subtitles', 'bilibili_playurl'])
+    // bilibili_frames belongs to this list: it is registered on the plugin's own
+    // fiber so a host-domain mount reaches agent scopes too. A Cordis child fiber
+    // (the old `ctx.inject(['attachments'], …)`) would have kept it invisible
+    // there, because a child's registrations reach only that child's descendants.
+    expect(names).toEqual(['bilibili_search', 'bilibili_video', 'bilibili_subtitles', 'bilibili_playurl', 'bilibili_frames'])
     const result = await ctx.tools.execute({ signal: new AbortController().signal, callId: 'c1' as never, name: 'bilibili_search', arguments: { keyword: 'q' } })
     expect(result.isError).toBe(false)
+  })
+
+  it('fails bilibili_frames closed when no attachment service is mounted', async () => {
+    const ctx = new Context()
+    await (ctx.plugin(SystemPrompt, {})).await()
+    await (ctx.plugin(ToolRuntime, {})).await()
+    await (ctx.plugin(plugin, {})).await()
+    // Registered but unusable here: the tool reports the missing store at
+    // execution time instead of disappearing from the registry.
+    expect(ctx.tools.schemas().map(s => s.name)).toContain('bilibili_frames')
+    const result = await ctx.tools.execute({ signal: new AbortController().signal, callId: 'c2' as never, name: 'bilibili_frames', arguments: { bvid: 'BV1GJ411x7h7' } })
+    expect(result.isError).toBe(true)
   })
 })
 

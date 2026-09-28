@@ -5,13 +5,13 @@ description: Use when configuring or diagnosing the Bilibili provider inside dsh
 
 # B 站提供方与故障排查（plugin-web-bilibili）
 
-插件版本：0.2.3（独立插件 dsh-plugin-bilibili，已在 DeepSeek Harness 0.1.7-rc.2 与 0.1.6-alpha.2 上验证）。关联技能：plugin-tool-bilibili（模型侧工具用法，正常使用时先看它）。
+插件版本：0.2.4（独立插件 dsh-plugin-bilibili，已在 DeepSeek Harness 0.1.7-rc.2 与 0.1.6-alpha.2 上验证）。关联技能：plugin-tool-bilibili（模型侧工具用法，正常使用时先看它）。
 
 ## 功能概述
 
 宿主侧是 **BilibiliOfficialProvider**（提供方 id：`bilibili-official`），它**随插件一起加载，不发布独立的 `ctx.bilibili` 服务**，因此不能从别的插件按服务名取用。它负责：搜索风控引导（匿名 buvid3）、搜索风控自动降级、视频详情（含 cid 兜底）、WBI 签名、字幕轨下载、mp4 直链、预览帧/封面抓取、HTTP 状态到错误码的映射与超时。模型只通过 plugin-tool-bilibili 的五个工具间接用到它。
 
-插件本身声明的依赖是 `tools` 与 `systemPrompt` 两个服务；`bilibili_frames` 另在 `attachments` 服务存在时挂载——这条依赖是可选的，宿主没有附件服务时该工具根本不注册。
+插件本身声明的依赖只有 `tools` 与 `systemPrompt` 两个服务（0.2.3 起不再有注册期的注入）。`bilibili_frames` 在**执行时**读取 `attachments` 服务：因此它在所有挂载了本插件的作用域里都注册、都可见，缺少附件存储时那一次调用返回结构化错误 `bilibili_frames: no attachment service is mounted in this scope`，而不是工具不存在。
 
 ## 适用场景
 
@@ -64,7 +64,7 @@ description: Use when configuring or diagnosing the Bilibili provider inside dsh
 
 ## 异常与回退
 
-工具报错时：先按错误码分类，再决定重试或换路径（详见 plugin-tool-bilibili）。若怀疑凭据问题，检查 `~/.dsh/.env` 里 `BILIBILI_SESSDATA` 是否存在且未过期；本插件不负责获取或续期凭据。`bilibili_frames` 另要求宿主挂载 `attachments` 服务且当前模型声明支持图片输入，两者不满足时报普通 Error（不复用 BilibiliError 码表）：没有附件服务时工具不注册，模型不支持图片时报 "does not declare image input"。
+工具报错时：先按错误码分类，再决定重试或换路径（详见 plugin-tool-bilibili）。若怀疑凭据问题，检查 `~/.dsh/.env` 里 `BILIBILI_SESSDATA` 是否存在且未过期；本插件不负责获取或续期凭据。`bilibili_frames` 另要求当前作用域挂载 `attachments` 服务、且当前模型声明支持图片输入，两者不满足时报普通 Error（不复用 BilibiliError 码表）：没有附件存储时报 `no attachment service is mounted in this scope`（工具依然可见，属执行期失败），模型不支持图片时报 `does not declare image input`。
 
 ## 环境相关
 
