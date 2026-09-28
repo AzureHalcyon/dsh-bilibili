@@ -79,5 +79,5 @@ MIT，见 LICENSE。
 
 ## 兼容性
 
-已在 **DeepSeek Harness 0.1.6-alpha.2**（Typert API Gateway）上验证。本插件不使用 typert codec API，0.1.6 无需改代码；0.1.0 线同样可用。
+已在 **DeepSeek Harness 0.1.7-rc.2** 与 **0.1.6-alpha.2**（Typert API Gateway）上验证。0.1.7 移除了共享的 `plugin` 消息来源 kind，因此 `bilibili_frames` 改为声明自己的 `bilibili-frames` kind；同一份构建同时服务两条线。0.1.0 线同样可用。
 

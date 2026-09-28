@@ -29,6 +29,23 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView, ToolExecution, ToolResult } from '@deepseek-ai/dsh-tools'
 import type { BilibiliProviderLike } from './types.ts'
 
+/**
+ * The message kind this package owns for the frames it injects.
+ *
+ * `MessageSourceMap` is merge-extensible: every producer declares its own
+ * `kind` in its own module, and consumers fall through kinds they do not know.
+ * Harness 0.1.7 removed the shared catch-all `plugin` kind this plugin used to
+ * carry, so the deferred frames context now names itself instead. The
+ * declaration merges on 0.1.6 too, where a private kind is equally valid, so a
+ * single build serves both lines.
+ */
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    /** Real video frames a `bilibili_frames` call attached to its own turn. */
+    'bilibili-frames': { kind: 'bilibili-frames' }
+  }
+}
+
 /** Default frame count for `extract` mode. */
 export const BILIBILI_FRAMES_DEFAULT_COUNT = 8
 
@@ -318,7 +335,7 @@ export function applyBilibiliFramesTool(ctx: Context, service: BilibiliProviderL
       if (exec.parent !== undefined) {
         exec.deferContext(createUserMessage({
           content: framesContent(value),
-          source: { kind: 'plugin', plugin: 'dsh-plugin-bilibili' },
+          source: { kind: 'bilibili-frames' },
         }))
       }
       return value

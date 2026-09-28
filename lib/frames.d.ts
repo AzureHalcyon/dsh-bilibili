@@ -18,6 +18,24 @@
 import type { Context } from '@deepseek-ai/cordis';
 import type { ImageMediaType } from '@deepseek-ai/dsh-attachment';
 import type { BilibiliProviderLike } from './types.ts';
+/**
+ * The message kind this package owns for the frames it injects.
+ *
+ * `MessageSourceMap` is merge-extensible: every producer declares its own
+ * `kind` in its own module, and consumers fall through kinds they do not know.
+ * Harness 0.1.7 removed the shared catch-all `plugin` kind this plugin used to
+ * carry, so the deferred frames context now names itself instead. The
+ * declaration merges on 0.1.6 too, where a private kind is equally valid, so a
+ * single build serves both lines.
+ */
+declare module '@deepseek-ai/dsh-llm' {
+    interface MessageSourceMap {
+        /** Real video frames a `bilibili_frames` call attached to its own turn. */
+        'bilibili-frames': {
+            kind: 'bilibili-frames';
+        };
+    }
+}
 /** Default frame count for `extract` mode. */
 export declare const BILIBILI_FRAMES_DEFAULT_COUNT = 8;
 /** Upper bound on requested frames; the per-message image cap still applies. */

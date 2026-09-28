@@ -79,5 +79,5 @@ MIT, see LICENSE.
 
 ## Compatibility
 
-Verified on **DeepSeek Harness 0.1.6-alpha.2** (Typert API Gateway). No code change was needed for 0.1.6 — this plugin does not use the typert codec API. The 0.1.0 line works too.
+Verified on **DeepSeek Harness 0.1.7-rc.2** and **0.1.6-alpha.2** (Typert API Gateway). 0.1.7 removed the shared `plugin` message-source kind, so `bilibili_frames` now declares the own `bilibili-frames` kind for the frames it injects; one build serves both lines. The 0.1.0 line works too.
 
