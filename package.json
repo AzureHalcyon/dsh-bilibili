@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-bilibili",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "DeepSeek Harness plugin: Bilibili keyword video search, video metadata, subtitle transcripts, direct play URLs, and multimodal frame viewing (bilibili_search / bilibili_video / bilibili_subtitles / bilibili_playurl / bilibili_frames). Anonymous by default with risk-control bootstrapping; an optional SESSDATA unlocks login-gated subtitles and higher-quality streams.",
   "keywords": [
     "deepseek-harness",
@@ -37,23 +37,23 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.0",
-    "@deepseek-ai/dsh-tools": ">=0.0.1-rc.1",
-    "@deepseek-ai/dsh-system-prompt": ">=0.0.1-rc.1",
-    "@deepseek-ai/schemastery": ">=3.18.0",
     "@deepseek-ai/dsh-attachment": ">=0.0.1-rc.5",
-    "@deepseek-ai/dsh-llm": ">=0.0.1-rc.5"
+    "@deepseek-ai/dsh-llm": ">=0.0.1-rc.5",
+    "@deepseek-ai/dsh-system-prompt": ">=0.0.1-rc.1",
+    "@deepseek-ai/dsh-tools": ">=0.0.1-rc.1",
+    "@deepseek-ai/schemastery": ">=3.18.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.4",
-    "@deepseek-ai/dsh-tools": "^0.1.7-rc.2",
-    "@deepseek-ai/dsh-system-prompt": "^0.1.7-rc.2",
-    "@deepseek-ai/schemastery": "^3.18.1",
-    "typescript": "^5.6.0",
-    "vitest": "^4.1.8",
-    "tsdown": "^0.13.0",
-    "@types/node": "^22.0.0",
-    "@deepseek-ai/dsh-attachment": "^0.1.7-rc.2",
-    "@deepseek-ai/dsh-llm": "^0.1.7-rc.2"
+    "@deepseek-ai/dsh-attachment": "^0.2.0-rc.2",
+    "@deepseek-ai/dsh-llm": "^0.2.0-rc.2",
+    "@deepseek-ai/dsh-system-prompt": "^0.2.0-rc.2",
+    "@deepseek-ai/dsh-tools": "^0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "^3.18.4",
+    "@types/node": "^22.20.4",
+    "tsdown": "^0.13.5",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
